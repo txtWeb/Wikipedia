@@ -3,7 +3,7 @@
 
 	<servlet>
     	<servlet-name>wikipediaService</servlet-name>
-    	<servlet-class>com.txtweb.examples.wikipedia.Wikipedia</servlet-class>
+    	<servlet-class>com.txtweb.wikipedia.Wikipedia</servlet-class>
 	</servlet>
 	<servlet-mapping>
     	<servlet-name>wikipediaService</servlet-name>
