@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<web-app>
+
+	<servlet>
+    	<servlet-name>wikipediaService</servlet-name>
+    	<servlet-class>com.txtweb.examples.wikipedia.Wikipedia</servlet-class>
+	</servlet>
+	<servlet-mapping>
+    	<servlet-name>wikipediaService</servlet-name>
+    	<url-pattern>/wikipedia</url-pattern>
+	</servlet-mapping>
+	
+  <!-- Default page to serve -->
+  <welcome-file-list>
+    <welcome-file>wikipedia.html</welcome-file>
+  </welcome-file-list>
+</web-app>
