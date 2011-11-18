@@ -14,7 +14,7 @@
 * limitations under the License.
 */
 //package org.apache.myfaces.renderkit.html.util;
-package com.txtweb.examples.txtWiki;
+package com.txtweb.wikipedia;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

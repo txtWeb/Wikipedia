@@ -1,0 +1,47 @@
+Copyright (c) 2010-02-16 Intuit Inc.
+All rights reserved. This program and the accompanying materials
+are made available under the terms of the Eclipse Public License v1.0
+which accompanies this distribution, and is available at
+http://www.opensource.org/licenses/eclipse-1.0.php
+Contributors:
+Manish Shah
+Clinton Nielsen
+Gopi Nambiar
+
+What?
+This project is an implementation of the Wikipedia app on txtWeb. This app basically allows users to access wikipedia pages from their low end mobile phone over a simple SMS,
+without using GPRS or mobile web. 
+
+
+How to run this project?
+
+Download the source files to your eclipse environment 
+
+You need to use the ANT tool to compile this project;
+
+SETUP
+1. Download and install latest version of ANT
+2. Set environment variable ANT_HOME to ANT installation directory
+3. Add ANT_HOME/bin directory to PATH environment variable
+4. Set JAVA_HOME environment variable to Java SDK directory
+5. Install and configure tomcat.
+
+COMMANDS
+
+	CD into the folder where you downloaded the code and run
+	
+CLEAN
+	ant clean
+
+DISTRIBUTION
+	ant war
+	A wikipedia.war file is created in dist directory
+
+START TOMCAT SERVER
+1. CD into your tomcat folder
+2. Run bin/startup.sh
+3. Copy the wikipedia.war file from your-wikipedia-project-folder/dist to tomcat-folder/webapps/
+4. Restart tomcat
+5. Goto localhost:8080
+6. Type in the URL bar : localhost:8080/wikipedia?txtweb-message=internet and watch the response on your browser.
+7. Stop tomcat after your done by running bin/shutdown.sh

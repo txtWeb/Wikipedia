@@ -27,16 +27,17 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.lang.WordUtils;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.ResponseHandler;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.BasicResponseHandler;
-import org.apache.http.impl.client.DefaultHttpClient;
-
 import net.htmlparser.jericho.Element;
 import net.htmlparser.jericho.OutputDocument;
 import net.htmlparser.jericho.Source;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.WordUtils;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.util.EntityUtils;
 
 public class Wikipedia extends HttpServlet {
 
@@ -51,6 +52,7 @@ public class Wikipedia extends HttpServlet {
 	private static final String HTTP_PARAM_TXTWEB_MESSAGE = "txtweb-message";
 	private static final String HTTP_PARAM_PARAGRAPH_NUMBER = "paragraph-number";
 	
+	@Override
 	public void doGet(HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws ServletException {
 
 		String txtWebMessageParam = httpRequest.getParameter(HTTP_PARAM_TXTWEB_MESSAGE);
@@ -63,6 +65,9 @@ public class Wikipedia extends HttpServlet {
 			//	and simply display the page.
 			page = pageParam;
 		} else if (txtWebMessageParam != null && !txtWebMessageParam.isEmpty()){
+			
+			txtWebMessageParam = StringUtils.strip(txtWebMessageParam);
+			txtWebMessageParam = txtWebMessageParam.replaceAll("\\s+", " ");
 			// Format the user's message to conform to wikipedia's URL naming conventions
 			page = txtWebMessageParam;
 			page = page.toLowerCase(); 
@@ -80,7 +85,9 @@ public class Wikipedia extends HttpServlet {
 		if(paragraphNumberParam != null) {
 			try{
 				paragraphNumber = Integer.parseInt(paragraphNumberParam);
-			} catch (NumberFormatException e) {}
+			} catch (NumberFormatException e) {
+				//
+			}
 		}
 
 		HttpClient httpclient = new DefaultHttpClient();
@@ -88,10 +95,11 @@ public class Wikipedia extends HttpServlet {
 			page = URLEncoder.encode(page, "UTF-8");
 			HttpGet httpGet = new HttpGet("http://en.wikipedia.org/wiki/" + page); 
 			
-			ResponseHandler<String> responseHandler = new BasicResponseHandler();
-			String responseBody = httpclient.execute(httpGet, responseHandler);
-			
-			Source source = new Source(responseBody);
+			HttpResponse Httpresponse = httpclient.execute(httpGet);
+			String responseBody = EntityUtils.toString(Httpresponse.getEntity(),"UTF-8");		
+			String responseWithoutInfoBoxes = removeInfoBoxes(responseBody);
+			Source source = new Source(responseWithoutInfoBoxes);
+			source.fullSequentialParse();
 			Element bodyContent = source.getElementById("bodyContent");
 			String response = "";
 			if(bodyContent != null) {
@@ -104,7 +112,9 @@ public class Wikipedia extends HttpServlet {
 			}
 			
 		} catch (MalformedURLException e) {
+			//
 		} catch (IOException e) {
+			//
 		} finally {
 			httpclient.getConnectionManager().shutdown();
 		}
@@ -131,11 +141,23 @@ public class Wikipedia extends HttpServlet {
 		sendResponse(httpResponse, response);
 		return;
 	}
+	
+	private String removeInfoBoxes(String html) {
+		Source source = new Source(html);
+		OutputDocument outputDocument = new OutputDocument(source);
+		List<Element> infoBoxes = source.getAllElementsByClass("infobox");
+		for(Element infoBox : infoBoxes) {
+			outputDocument.replace(infoBox, "");
+		}
+		return outputDocument.toString();
+	}
 
 	private String parseHtmlNode(Element theElement, String page, int paragraphNumToDisplay) {
 		String response = "";
-
-		List<Element> children = (List<Element>)theElement.getChildElements();
+		
+		Element firstParagraph = theElement.getFirstElement("p");
+		Element firstParagraphParent = firstParagraph.getParentElement();
+		List<Element> children = firstParagraphParent.getChildElements();
 		int currentParagraphNum = 0;
 		for (Element child: children) {
 			if (child.getName().equals("p")) {
@@ -145,7 +167,7 @@ public class Wikipedia extends HttpServlet {
 					Source paragraphSource = new Source(child.getContent().toString());
 					OutputDocument outputDocument = new OutputDocument(paragraphSource);
 					for(Element el : paragraphSource.getChildElements()) {
-						outputDocument = parseHtmlNodeRecurse(outputDocument, el);
+						parseHtmlNodeRecurse(outputDocument, el);
 					}
 					response = outputDocument.toString();
 				} else if(currentParagraphNum > paragraphNumToDisplay) {
@@ -164,7 +186,7 @@ public class Wikipedia extends HttpServlet {
 					Source paragraphSource = new Source(child.getContent().toString());
 					OutputDocument outputDocument = new OutputDocument(paragraphSource);
 					for(Element el : paragraphSource.getChildElements()) {
-						outputDocument = parseHtmlNodeRecurse(outputDocument, el);
+						parseHtmlNodeRecurse(outputDocument, el);
 					}
 					response += outputDocument.toString();
 				}
@@ -182,7 +204,7 @@ public class Wikipedia extends HttpServlet {
 	}
 
 	// Parse the elements recursively removing external links and superscripts
-	private OutputDocument parseHtmlNodeRecurse(OutputDocument outputDocument, Element element) {
+	private void parseHtmlNodeRecurse(OutputDocument outputDocument, Element element) {
 		if(element.getName().equalsIgnoreCase("a")) {
 			String href = element.getAttributeValue("href");
 			if(href != null && href.toLowerCase().startsWith("/wiki/")) {
@@ -197,50 +219,55 @@ public class Wikipedia extends HttpServlet {
 		} else if(element.getName().equalsIgnoreCase("sup")) {
 	 		// Remove superscripts
 			outputDocument.replace(element, "");
+		} else if(element.getName().equalsIgnoreCase("small")) {
+	 		// Remove subscripts
+			outputDocument.replace(element, "");
 		} else if(element.getAttributeValue("class") != null && element.getAttributeValue("class").equals("IPA")) {			
 	 		// Remove Phonetic links
 			outputDocument.replace(element, "");
 		} else {
 			if(element.getChildElements() != null) {
 				for(Element childElement : element.getChildElements()) {
-					outputDocument = parseHtmlNodeRecurse(outputDocument, childElement);
+					parseHtmlNodeRecurse(outputDocument, childElement);
 				}
 			}
 		}
-		return outputDocument;
 	}
 	
-	private String getWelcomeMessage() {
-		return "Welcome to Wikipedia<br/><br/>"
-			+ getSearchForm();
+	private static String getWelcomeMessage() {
+		return "Welcome to Wikipedia on txtWeb<br/><br/>"
+			+ getSearchForm()
+			+ "<br/><br/>For example:<br/>"
+			+ "'@wikipedia india' or<br/>"
+			+ "'@wikipedia cloud computing' etc<br/>";
 	}
 
-	private String getNothingFoundMessage(String message) {
+	private static String getNothingFoundMessage(String message) {
 		return "No Wikipedia page found for request: " + HTMLEncoder.encode(message, true, true, true) + "<br/><br/>"
 			+ getSearchForm();
 	}
 	
-	private String getSearchForm() {
-		return "To search Wikipedia<br/>"
-		+ "<form action='/wikipedia' method='get' class='" + CSS_TXTWEB_FORM + "' >"
+	private static String getSearchForm() {
+		return "<form action='/wikipedia' method='get' class='" + CSS_TXTWEB_FORM + "' >"
 		+ "search<input type='text' name='txtweb-message' />"
 		+ "<input type='submit' value='Submit' />"
-		+ "</form>";
+		+ "</form>to search on wikipedia";
 	}
 
-	private void sendResponse(HttpServletResponse httpResponse, String response) {
+	private static void sendResponse(HttpServletResponse httpResponse, String response) {
 		try{
 			httpResponse.setContentType("text/html; charset=UTF-8");
 			PrintWriter out = httpResponse.getWriter();
 			
 			// Add all the surrounding HTML
-			response = "<html><head><title>Wikipedia</title>"
+			String htmlResponse = "<html><head><title>Wikipedia</title>"
 				+ "<meta http-equiv='Content-Type' content='text/html; charset=UTF-8' />"
 				+ "<meta name='" + APPKEY_NAME + "' content='" + APPKEY_CONTENT + "' />"
 				+ "</head><body>" + response + "</body></html>";
 			
-			out.println(response);
-		} catch (IOException e) {}		
+			out.println(htmlResponse);
+		} catch (IOException e) {
+			//
+		}		
 	}
-
 }
