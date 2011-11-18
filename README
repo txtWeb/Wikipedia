@@ -6,12 +6,10 @@ http://www.opensource.org/licenses/eclipse-1.0.php
 Contributors:
 Manish Shah
 Clinton Nielsen
-Gopi Nambiar
+Gopi Krishnan Nambiar
 
 What?
-This project is an implementation of the Wikipedia app on txtWeb. This app basically allows users to access wikipedia pages from their low end mobile phone over a simple SMS,
-without using GPRS or mobile web. 
-
+This project is an implementation of Wikipedia on txtWeb (http://www.txtweb.com/). The app basically allows users to access Wikipedia content from any mobile phone over a simple SMS, without using GPRS or mobile web.
 
 How to run this project?
 
