@@ -44,4 +44,4 @@ START TOMCAT SERVER
 4. Restart tomcat
 5. Goto localhost:8080
 6. Type in the URL bar : localhost:8080/wikipedia?txtweb-message=internet and watch the response on your browser.
-7. Stop tomcat after your done by running bin/shutdown.sh
+7. Stop tomcat after you're done by running bin/shutdown.sh
